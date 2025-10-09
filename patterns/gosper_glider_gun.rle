@@ -1,0 +1,17 @@
+#N Gosper glider gun
+#O Bill Gosper
+#C The first known gun and the first known finite pattern with unbounded growth.
+#C Produces a glider every 30 generations.
+#C Discovered by Bill Gosper in 1970.
+x = 36, y = 9, rule = B3/S23
+24bo11b$
+22bobo11b$
+12bo10bobo12b$
+11bobo9bobob2o9b$
+2bo8bobo8bo2bobobo8b$
+bo2bo7bo9bo4bobobo7b$
+bo2bo18bo4bobobo6b$
+o3bo16bo5bobobo6b$
+3obo17bo2bobob2o7b$
+21bo2bobo10b$
+22bo2bo11b$
