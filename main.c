@@ -295,41 +295,96 @@ void load_rle(const char* filename, int offset_y, int offset_x, bool clear_befor
 
 }
 
-void choose_color_screen(struct Game *g) {
-    if (TTF_Init() == -1) {
-        fprintf(stderr, "TTF_Init Error: %s\n", SDL_GetError());
-        return;
-    }
+struct Color {
+    Uint8 r, g, b, a;
+};
 
-    SDL_Window *color_win = SDL_CreateWindow("Conway's Game of Life | Choose Color", 600, 400, 0);
-    SDL_Renderer *color_ren = SDL_CreateRenderer(color_win, NULL);
+static void draw_slider(SDL_Renderer *ren, int x, int y, int value, SDL_Color barColor) {
+    float width = 200.0f;
+    SDL_FRect track = {x, y, width, 10};
+    SDL_SetRenderDrawColor(ren, 80, 80, 80, 255);
+    SDL_RenderFillRect(ren, &track);
 
-    TTF_Font *font = TTF_OpenFont("assets/DejaVuSans.ttf", 20);
-    if (!font) {
-        SDL_Log("Error loading font: %s\n", SDL_GetError());
-        return;
-    }
+    float scaled_value = (value / 255.0f) * width;
 
-    SDL_SetRenderDrawColor(color_ren, 40, 40, 40, 255);
-    SDL_RenderClear(color_ren);
-    SDL_RenderPresent(color_ren);
+    SDL_FRect fill = {x, y, scaled_value, 10};
+    SDL_SetRenderDrawColor(ren, barColor.r, barColor.g, barColor.b, barColor.a);
+    SDL_RenderFillRect(ren, &fill);
 
-    bool running = true;
-    SDL_Event e;
+    SDL_FRect knob = {x + scaled_value - 5, y - 3, 10, 16};
+    SDL_SetRenderDrawColor(ren, 255, 255, 255, 255);
+    SDL_RenderFillRect(ren, &knob);
+}
+
+struct Color open_color_slider_picker(void) {
+    SDL_Window *win = SDL_CreateWindow("Color Picker", 600, 300, 0);
+    SDL_Renderer *ren = SDL_CreateRenderer(win, NULL);
+
+    struct Color current = {128, 128, 128, 255};
+    bool running = true, dragging = false;
+    int activeSlider = -1;
+
     while (running) {
+        SDL_Event e;
         while (SDL_PollEvent(&e)) {
-            if (e.type == SDL_EVENT_WINDOW_CLOSE_REQUESTED) {
-                if (e.window.windowID == SDL_GetWindowID(color_win)) running = false;
+            switch (e.type) {
+                case SDL_EVENT_WINDOW_CLOSE_REQUESTED:
+                    if (e.window.windowID == SDL_GetWindowID(win)) running = false;
+                    break;
+                case SDL_EVENT_MOUSE_BUTTON_DOWN:
+                    dragging = true;
+                    {
+                        int mx = e.button.x, my = e.button.y;
+                        if (my >= 60 && my <= 75) activeSlider = 0;
+                        else if (my >= 100 && my <= 115) activeSlider = 1;
+                        else if (my >= 140 && my <= 155) activeSlider = 2;
+                    }
+                    break;
+                case SDL_EVENT_MOUSE_BUTTON_UP:
+                    dragging = false;
+                    activeSlider = -1;
+                    break;
+                case SDL_EVENT_MOUSE_MOTION:
+                    if (dragging && activeSlider != -1) {
+                        int mx = e.motion.x;
+                        int value = ((mx - 100) / 200.0f) * 255;
+                        if (value < 0) value = 0;
+                        if (value > 255) value = 255;
+
+                        if (activeSlider == 0) current.r = value;
+                        if (activeSlider == 1) current.g = value;
+                        if (activeSlider == 2) current.b = value;
+                    }
+                    break;
+                case SDL_EVENT_KEY_DOWN:
+                    if (e.key.scancode == SDL_SCANCODE_RETURN) running = false;
+                    break;
+                default:
+                    break;
             }
         }
-        SDL_Delay(50);
+
+        SDL_SetRenderDrawColor(ren, 30, 30, 30, 255);
+        SDL_RenderClear(ren);
+        
+        SDL_Color red = {255, 0, 0, 255};
+        SDL_Color green = {0, 255, 0, 255};
+        SDL_Color blue = {0, 0, 255, 255};
+
+        draw_slider(ren, 100, 60, current.r, red);
+        draw_slider(ren, 100, 100, current.g, green);
+        draw_slider(ren, 100, 140, current.b, blue);
+
+        SDL_FRect preview = {130, 190, 140, 70};
+        SDL_SetRenderDrawColor(ren, current.r, current.g, current.b, 255);
+        SDL_RenderFillRect(ren, &preview);
+
+        SDL_RenderPresent(ren);
     }
 
-    TTF_CloseFont(font);
-    SDL_DestroyRenderer(color_ren);
-    SDL_DestroyWindow(color_win);
-    TTF_Quit();
-
+    SDL_DestroyRenderer(ren);
+    SDL_DestroyWindow(win);
+    return current;
 }
 
 void customize_game(struct Game *g) {
@@ -441,7 +496,11 @@ void customize_game(struct Game *g) {
                             break;
                         case SDL_SCANCODE_8:
                             running = false;
-                            choose_color_screen(g);
+                            struct Color chosen = open_color_slider_picker();
+                            g -> tile_color[0] = chosen.r;
+                            g -> tile_color[1] = chosen.g;
+                            g -> tile_color[2] = chosen.b;
+                            g -> tile_color[3] = chosen.a;
                             break;
                         default:
                             break;
