@@ -316,11 +316,11 @@ static void draw_slider(SDL_Renderer *ren, int x, int y, int value, SDL_Color ba
     SDL_RenderFillRect(ren, &knob);
 }
 
-struct Color open_color_slider_picker(void) {
+struct Color open_color_slider_picker(struct Game *g) {
     SDL_Window *win = SDL_CreateWindow("Color Picker", 600, 300, 0);
     SDL_Renderer *ren = SDL_CreateRenderer(win, NULL);
 
-    struct Color current = {128, 128, 128, 255};
+    struct Color current = {g -> tile_color[0], g -> tile_color[1], g -> tile_color[2], g -> tile_color[3]};
     bool running = true, dragging = false;
     int activeSlider = -1;
 
@@ -410,8 +410,7 @@ void customize_game(struct Game *g) {
         "[4] - Red",
         "[5] - Orange",
         "[6] - White",
-        "[7] - Black",
-        "[8] - Customize (choose)"
+        "[C] - Customize (choose)"
     };
 
     int num_lines = sizeof(lines) / sizeof(lines[0]);
@@ -487,16 +486,9 @@ void customize_game(struct Game *g) {
                             g -> tile_color[3] = 255;
                             running = false;
                             break;
-                        case SDL_SCANCODE_7:
-                            g -> tile_color[0] = 0;
-                            g -> tile_color[1] = 0;
-                            g -> tile_color[2] = 0;
-                            g -> tile_color[3] = 255;
+                        case SDL_SCANCODE_C:
                             running = false;
-                            break;
-                        case SDL_SCANCODE_8:
-                            running = false;
-                            struct Color chosen = open_color_slider_picker();
+                            struct Color chosen = open_color_slider_picker(g);
                             g -> tile_color[0] = chosen.r;
                             g -> tile_color[1] = chosen.g;
                             g -> tile_color[2] = chosen.b;
@@ -730,7 +722,7 @@ void game_events(struct Game *g) {
 }
 
 void draw_grid_lines(struct Game *g) {
-    SDL_SetRenderDrawColor(g->renderer, 0, 0, 0, 255);
+    SDL_SetRenderDrawColor(g->renderer, 255, 255, 255, 255);
     
     for (int x = 0; x < WINDOW_WIDTH; x+=TILE_SIZE) {
         SDL_RenderLine(g->renderer, x, 0, x, WINDOW_HEIGHT);
@@ -759,7 +751,7 @@ void draw_grid(struct Game *g) {
 }
 
 void game_draw(struct Game *g) {
-    SDL_SetRenderDrawColor(g->renderer, 174, 174, 174, 255);
+    SDL_SetRenderDrawColor(g->renderer, 0, 0, 0, 255);
     SDL_RenderClear(g->renderer);
     draw_grid(g);
     draw_grid_lines(g);
