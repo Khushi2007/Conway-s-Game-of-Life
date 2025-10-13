@@ -1,14 +1,15 @@
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_main.h>
 #include <SDL3_ttf/SDL_ttf.h>
+#include <SDL3/SDL_thread.h>
 #include <stdio.h>
 #include <stdbool.h>
 #include <stdlib.h>
 #include <ctype.h>
 #include <string.h>
 
-#define SDL_FLAGS SDL_INIT_VIDEO
-#define WINDOW_TITLE "Conway's Game of Life | Paused"
+#define SDL_FLAGS (SDL_INIT_VIDEO | SDL_INIT_AUDIO)
+#define WINDOW_TITLE "Conway's Game of Life | Playing"
 #define WINDOW_WIDTH 1050
 #define WINDOW_HEIGHT 945
 #define TILE_SIZE 35
@@ -26,6 +27,118 @@ struct Game {
     int update_freq;
     int tile_color[4];
 };
+
+static bool music_thread_running = false;
+static SDL_Thread *music_thread = NULL;
+
+static SDL_AudioStream *stream = NULL;
+
+static Uint8 *music_buffer = NULL;
+static Uint32 music_length = 0;
+
+static bool music_paused = false;
+
+bool play_background_music(const char* filename) {
+    SDL_AudioSpec spec;
+    if (!SDL_LoadWAV(filename, &spec, &music_buffer, &music_length)) {
+        SDL_Log("Failed to load WAV: %s\n", SDL_GetError());
+        return false;
+    }
+
+    stream = SDL_OpenAudioDeviceStream(SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK, &spec, NULL, NULL);
+    if (!stream) {
+        SDL_Log("SDL_OpenAudioDeviceStream failed: %s\n", SDL_GetError());
+        SDL_free(music_buffer);
+        return false;
+    }
+
+    SDL_PutAudioStreamData(stream, music_buffer, music_length);
+    SDL_ResumeAudioStreamDevice(stream);
+    return true;
+}
+
+void stop_background_music(void) {
+    if (stream) {
+        SDL_DestroyAudioStream(stream);
+        stream = NULL;
+    }
+    if (music_buffer) {
+        SDL_free(music_buffer);
+        music_buffer = NULL;
+    }
+}
+
+void pause_background_music(void) {
+    if (stream && !music_paused) {
+        SDL_PauseAudioStreamDevice(stream);
+        music_paused = true;
+    }
+}
+
+void resume_background_music(void) {
+    if (stream && music_paused) {
+        SDL_ResumeAudioStreamDevice(stream);
+        music_paused = false;
+    }
+}
+
+
+int music_loop_thread(void *arg) {
+    const char *filename = (const char*) arg;
+
+    while (music_thread_running) {
+        if (stream) {
+            if (SDL_GetAudioStreamQueued(stream) == 0) {
+                SDL_FlushAudioStream(stream);
+                SDL_AudioSpec spec;
+                Uint8 *buffer;
+                Uint32 length;
+
+                if (!SDL_LoadWAV(filename, &spec, &buffer, &length)) {
+                    SDL_Log("Failed to reload WAV: %s\n", SDL_GetError());
+                } else {
+                    SDL_PutAudioStreamData(stream, buffer, length);
+                    SDL_free(buffer);
+                }
+                SDL_ResumeAudioStreamDevice(stream);
+            }
+        }
+        SDL_Delay(50);
+    }
+
+    return 0;
+}
+
+void start_music_thread(const char* filename) {
+    music_thread_running = true;
+    music_thread = SDL_CreateThread(music_loop_thread, "MusicThread", (void*) filename);
+}
+
+void stop_music_thread() {
+    music_thread_running = false;
+    if (music_thread) {
+        SDL_WaitThread(music_thread, NULL);
+        music_thread = NULL;
+    }
+}
+
+
+SDL_AudioSpec sfx_spec;
+Uint8 *sfx_toggle_buffer = NULL;
+Uint32 *sfx_toggle_length = 0;
+Uint8 *sfx_clear_buffer = NULL;
+Uint32 *sfx_clear_length = 0;
+
+void load_sound_effects() {
+    SDL_LoadWAV("assets/toggle.wav", &sfx_spec, &sfx_toggle_buffer, sfx_toggle_length);
+    SDL_LoadWAV("assets/clear.wav", &sfx_spec, &sfx_clear_buffer, sfx_clear_length);
+}
+
+void play_sfx(Uint8 *buffer, Uint32 length) {
+    if (!stream) return;
+    SDL_PutAudioStreamData(stream, buffer, length);
+    SDL_ResumeAudioStreamDevice(stream);
+}
 
 void show_menu_window(char window_title[], int win_x, int win_y, char *lines[], int num_lines) {
     if (TTF_Init() == -1) {
@@ -148,8 +261,16 @@ bool game_new(struct Game *g) {
         return false;
     }
 
+    if (!play_background_music("assets/background.wav")) {
+        SDL_Log("Background music failed to play!\n");
+    }
+
+    start_music_thread("assets/background.wav");
+
+    load_sound_effects();
+
     g -> is_running = true;
-    g -> is_playing = false;
+    g -> is_playing = true;
     g -> update_freq = 60;
     g -> tile_color[0] = 255;
     g -> tile_color[1] = 255;
@@ -168,7 +289,9 @@ void game_free(struct Game *g) {
         SDL_DestroyWindow(g -> window);
         g -> window = NULL;
     }
-
+    
+    stop_music_thread();
+    stop_background_music();
     SDL_Quit();
 }
 
@@ -661,10 +784,17 @@ void game_events(struct Game *g) {
                         break;
                     case SDL_SCANCODE_SPACE:
                         g->is_playing = !g->is_playing;
+                        if (g->is_playing) {
+                            resume_background_music();
+                        } else {
+                            pause_background_music();
+                        }
                         break;
                     case SDL_SCANCODE_C:
                         clear_screen();
                         g->is_playing = false;
+                        pause_background_music();
+                        //play_sfx(sfx_clear_buffer, *sfx_clear_length);
                         break;
                     case SDL_SCANCODE_G:
                         grid_randomize();
@@ -675,15 +805,12 @@ void game_events(struct Game *g) {
                         }
                         break;
                     case SDL_SCANCODE_H:
-                        g->is_playing = false;
                         show_help_window();
                         break;
                     case SDL_SCANCODE_P:
-                        g->is_playing = false;
                         show_patterns_window();
                         break;
                     case SDL_SCANCODE_S:
-                        g->is_playing = false;
                         customize_game(g);
                         break;
                     case SDL_SCANCODE_1:
@@ -712,6 +839,7 @@ void game_events(struct Game *g) {
                 int x_g = mouseX / TILE_SIZE;
                 int y_g = mouseY / TILE_SIZE;
                 grid[y_g][x_g] = !(grid[y_g][x_g]);
+                //play_sfx(sfx_toggle_buffer, *sfx_toggle_length);
                 break;
             }
             default:
@@ -759,6 +887,7 @@ void game_draw(struct Game *g) {
 
 void game_run(struct Game *g) {
     int count = 0;
+
 
     while (g -> is_running) {
         if (g -> is_playing) {
