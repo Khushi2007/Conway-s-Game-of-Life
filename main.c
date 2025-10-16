@@ -11,7 +11,7 @@
 
 #define SDL_FLAGS (SDL_INIT_VIDEO | SDL_INIT_AUDIO)
 #define WINDOW_TITLE "Conway's Game of Life | Playing"
-#define WINDOW_WIDTH 1400
+#define WINDOW_WIDTH 1050
 #define WINDOW_HEIGHT 945
 #define TILE_SIZE 35
 #define GRID_WIDTH (WINDOW_WIDTH / TILE_SIZE)
