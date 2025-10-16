@@ -7,10 +7,11 @@
 #include <stdlib.h>
 #include <ctype.h>
 #include <string.h>
+#include "audio_manager.h"
 
 #define SDL_FLAGS (SDL_INIT_VIDEO | SDL_INIT_AUDIO)
 #define WINDOW_TITLE "Conway's Game of Life | Playing"
-#define WINDOW_WIDTH 1050
+#define WINDOW_WIDTH 1400
 #define WINDOW_HEIGHT 945
 #define TILE_SIZE 35
 #define GRID_WIDTH (WINDOW_WIDTH / TILE_SIZE)
@@ -28,117 +29,118 @@ struct Game {
     int tile_color[4];
 };
 
-static bool music_thread_running = false;
-static SDL_Thread *music_thread = NULL;
+// static bool music_thread_running = false;
+// static SDL_Thread *music_thread = NULL;
 
-static SDL_AudioStream *stream = NULL;
+// static SDL_AudioStream *music_stream = NULL;
+// static SDL_AudioStream *sfx_stream = NULL;
 
-static Uint8 *music_buffer = NULL;
-static Uint32 music_length = 0;
+// static Uint8 *music_buffer = NULL;
+// static Uint32 music_length = 0;
 
-static bool music_paused = false;
+// static bool music_paused = false;
 
-bool play_background_music(const char* filename) {
-    SDL_AudioSpec spec;
-    if (!SDL_LoadWAV(filename, &spec, &music_buffer, &music_length)) {
-        SDL_Log("Failed to load WAV: %s\n", SDL_GetError());
-        return false;
-    }
+// bool play_background_music(const char* filename) {
+//     SDL_AudioSpec spec;
+//     if (!SDL_LoadWAV(filename, &spec, &music_buffer, &music_length)) {
+//         SDL_Log("Failed to load WAV: %s\n", SDL_GetError());
+//         return false;
+//     }
 
-    stream = SDL_OpenAudioDeviceStream(SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK, &spec, NULL, NULL);
-    if (!stream) {
-        SDL_Log("SDL_OpenAudioDeviceStream failed: %s\n", SDL_GetError());
-        SDL_free(music_buffer);
-        return false;
-    }
+//     music_stream = SDL_OpenAudioDeviceStream(SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK, &spec, NULL, NULL);
+//     if (!music_stream) {
+//         SDL_Log("SDL_OpenAudioDeviceStream failed: %s\n", SDL_GetError());
+//         SDL_free(music_buffer);
+//         return false;
+//     }
 
-    SDL_PutAudioStreamData(stream, music_buffer, music_length);
-    SDL_ResumeAudioStreamDevice(stream);
-    return true;
-}
+//     SDL_PutAudioStreamData(music_stream, music_buffer, music_length);
+//     SDL_ResumeAudioStreamDevice(music_stream);
+//     return true;
+// }
 
-void stop_background_music(void) {
-    if (stream) {
-        SDL_DestroyAudioStream(stream);
-        stream = NULL;
-    }
-    if (music_buffer) {
-        SDL_free(music_buffer);
-        music_buffer = NULL;
-    }
-}
+// void stop_background_music(void) {
+//     if (music_stream) {
+//         SDL_DestroyAudioStream(music_stream);
+//         music_stream = NULL;
+//     }
+//     if (music_buffer) {
+//         SDL_free(music_buffer);
+//         music_buffer = NULL;
+//     }
+// }
 
-void pause_background_music(void) {
-    if (stream && !music_paused) {
-        SDL_PauseAudioStreamDevice(stream);
-        music_paused = true;
-    }
-}
+// void pause_background_music(void) {
+//     if (music_stream && !music_paused) {
+//         SDL_PauseAudioStreamDevice(music_stream);
+//         music_paused = true;
+//     }
+// }
 
-void resume_background_music(void) {
-    if (stream && music_paused) {
-        SDL_ResumeAudioStreamDevice(stream);
-        music_paused = false;
-    }
-}
-
-
-int music_loop_thread(void *arg) {
-    const char *filename = (const char*) arg;
-
-    while (music_thread_running) {
-        if (stream) {
-            if (SDL_GetAudioStreamQueued(stream) == 0) {
-                SDL_FlushAudioStream(stream);
-                SDL_AudioSpec spec;
-                Uint8 *buffer;
-                Uint32 length;
-
-                if (!SDL_LoadWAV(filename, &spec, &buffer, &length)) {
-                    SDL_Log("Failed to reload WAV: %s\n", SDL_GetError());
-                } else {
-                    SDL_PutAudioStreamData(stream, buffer, length);
-                    SDL_free(buffer);
-                }
-                SDL_ResumeAudioStreamDevice(stream);
-            }
-        }
-        SDL_Delay(50);
-    }
-
-    return 0;
-}
-
-void start_music_thread(const char* filename) {
-    music_thread_running = true;
-    music_thread = SDL_CreateThread(music_loop_thread, "MusicThread", (void*) filename);
-}
-
-void stop_music_thread() {
-    music_thread_running = false;
-    if (music_thread) {
-        SDL_WaitThread(music_thread, NULL);
-        music_thread = NULL;
-    }
-}
+// void resume_background_music(void) {
+//     if (music_stream && music_paused) {
+//         SDL_ResumeAudioStreamDevice(music_stream);
+//         music_paused = false;
+//     }
+// }
 
 
-SDL_AudioSpec sfx_spec;
-Uint8 *sfx_toggle_buffer = NULL;
-Uint32 *sfx_toggle_length = 0;
-Uint8 *sfx_clear_buffer = NULL;
-Uint32 *sfx_clear_length = 0;
+// int music_loop_thread(void *arg) {
+//     const char *filename = (const char*) arg;
 
-void load_sound_effects() {
-    SDL_LoadWAV("assets/toggle.wav", &sfx_spec, &sfx_toggle_buffer, sfx_toggle_length);
-    SDL_LoadWAV("assets/clear.wav", &sfx_spec, &sfx_clear_buffer, sfx_clear_length);
-}
+//     while (music_thread_running) {
+//         if (music_stream) {
+//             if (SDL_GetAudioStreamQueued(music_stream) == 0) {
+//                 SDL_FlushAudioStream(music_stream);
+//                 SDL_AudioSpec spec;
+//                 Uint8 *buffer;
+//                 Uint32 length;
 
-void play_sfx(Uint8 *buffer, Uint32 length) {
-    if (!stream) return;
-    SDL_PutAudioStreamData(stream, buffer, length);
-    SDL_ResumeAudioStreamDevice(stream);
-}
+//                 if (!SDL_LoadWAV(filename, &spec, &buffer, &length)) {
+//                     SDL_Log("Failed to reload WAV: %s\n", SDL_GetError());
+//                 } else {
+//                     SDL_PutAudioStreamData(music_stream, buffer, length);
+//                     SDL_free(buffer);
+//                 }
+//                 SDL_ResumeAudioStreamDevice(music_stream);
+//             }
+//         }
+//         SDL_Delay(50);
+//     }
+
+//     return 0;
+// }
+
+// void start_music_thread(const char* filename) {
+//     music_thread_running = true;
+//     music_thread = SDL_CreateThread(music_loop_thread, "MusicThread", (void*) filename);
+// }
+
+// void stop_music_thread() {
+//     music_thread_running = false;
+//     if (music_thread) {
+//         SDL_WaitThread(music_thread, NULL);
+//         music_thread = NULL;
+//     }
+// }
+
+
+// SDL_AudioSpec sfx_spec;
+// Uint8 *sfx_toggle_buffer = NULL;
+// Uint32 sfx_toggle_length = 0;
+// Uint8 *sfx_clear_buffer = NULL;
+// Uint32 sfx_clear_length = 0;
+
+// void load_sound_effects() {
+//     SDL_LoadWAV("assets/toggle.wav", &sfx_spec, &sfx_toggle_buffer, &sfx_toggle_length);
+//     SDL_LoadWAV("assets/clear.wav", &sfx_spec, &sfx_clear_buffer, &sfx_clear_length);
+// }
+
+// void play_sfx(Uint8 *buffer, Uint32 length) {
+//     if (!music_stream) return;
+//     SDL_PutAudioStreamData(music_stream, buffer, length);
+//     SDL_ResumeAudioStreamDevice(music_stream);
+// }
 
 void show_menu_window(char window_title[], int win_x, int win_y, char *lines[], int num_lines) {
     if (TTF_Init() == -1) {
@@ -261,14 +263,20 @@ bool game_new(struct Game *g) {
         return false;
     }
 
-    if (!play_background_music("assets/background.wav")) {
-        SDL_Log("Background music failed to play!\n");
+    if (!init_audio_system()) {
+        SDL_Log("Failed to initialize audio system\n");
+        return false;
+    } else {
+        SDL_Log("Audio system initialized successfully\n");
     }
 
-    start_music_thread("assets/background.wav");
-
-    load_sound_effects();
-
+    if (!play_background_music("assets/background.wav")) {
+        SDL_Log("Failed to start background music\n");
+        return false;
+    } else {
+        SDL_Log("Background music started successfully\n");
+    }
+    
     g -> is_running = true;
     g -> is_playing = true;
     g -> update_freq = 60;
@@ -290,8 +298,8 @@ void game_free(struct Game *g) {
         g -> window = NULL;
     }
     
-    stop_music_thread();
     stop_background_music();
+    shutdown_audio_system();
     SDL_Quit();
 }
 
@@ -794,7 +802,7 @@ void game_events(struct Game *g) {
                         clear_screen();
                         g->is_playing = false;
                         pause_background_music();
-                        //play_sfx(sfx_clear_buffer, *sfx_clear_length);
+                        play_sfx("assets/clear.wav");
                         break;
                     case SDL_SCANCODE_G:
                         grid_randomize();
@@ -839,7 +847,7 @@ void game_events(struct Game *g) {
                 int x_g = mouseX / TILE_SIZE;
                 int y_g = mouseY / TILE_SIZE;
                 grid[y_g][x_g] = !(grid[y_g][x_g]);
-                //play_sfx(sfx_toggle_buffer, *sfx_toggle_length);
+                play_sfx("assets/toggle.wav");
                 break;
             }
             default:
