@@ -6,17 +6,17 @@
 #include <stdlib.h>
 #include <string.h>
 
-// ------------------- Global State -------------------
 static SDL_Thread *music_thread = NULL;
 static bool music_thread_running = false;
 static bool music_paused = false;
 
 static SDL_AudioStream *music_stream = NULL;
+static SDL_AudioStream *sfx_stream = NULL;
+
 static Uint8 *music_buffer = NULL;
 static Uint32 music_length = 0;
 static const char *current_music_file = NULL;
 
-// ------------------- Music Loop Thread -------------------
 static int music_loop_thread(void *arg) {
     while (music_thread_running) {
         if (!music_paused && music_stream && SDL_GetAudioStreamQueued(music_stream) == 0) {
@@ -36,7 +36,6 @@ static int music_loop_thread(void *arg) {
     return 0;
 }
 
-// ------------------- API -------------------
 bool init_audio_system(void) {
     if (SDL_Init(SDL_INIT_AUDIO) < 0) {
         SDL_Log("SDL_Init AUDIO failed: %s\n", SDL_GetError());
@@ -55,6 +54,11 @@ void shutdown_audio_system(void) {
     if (music_stream) {
         SDL_DestroyAudioStream(music_stream);
         music_stream = NULL;
+    }
+
+    if (sfx_stream) {
+        SDL_DestroyAudioStream(sfx_stream);
+        sfx_stream = NULL;
     }
 
     if (music_buffer) {
@@ -84,7 +88,6 @@ bool play_background_music(const char* filename) {
         return false;
     }
 
-    // create a stream for the music
     music_stream = SDL_OpenAudioDeviceStream(SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK, &spec, NULL, NULL);
     if (!music_stream) {
         SDL_Log("SDL_OpenAudioDeviceStream failed: %s\n", SDL_GetError());
@@ -95,14 +98,22 @@ bool play_background_music(const char* filename) {
     SDL_PutAudioStreamData(music_stream, buffer, length);
     SDL_ResumeAudioStreamDevice(music_stream);
 
-    // store info for looping
+    sfx_stream = SDL_OpenAudioDeviceStream(SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK, &spec, NULL, NULL);
+    if (!sfx_stream) {
+        SDL_Log("SDL_OpenAudioDeviceStream (SFX) failed: %s\n", SDL_GetError());
+        SDL_DestroyAudioStream(music_stream);
+        SDL_free(buffer);
+        return false;
+    }
+    SDL_ResumeAudioStreamDevice(sfx_stream);
+
     music_buffer = buffer;
     music_length = length;
     current_music_file = filename;
 
     if (!music_thread_running) {
         music_thread_running = true;
-        music_thread = SDL_CreateThread(music_loop_thread, "MusicThread", (void*)music_stream);
+        music_thread = SDL_CreateThread(music_loop_thread, "MusicThread", NULL);
     }
 
     music_paused = false;
@@ -121,6 +132,11 @@ void stop_background_music(void) {
         music_stream = NULL;
     }
 
+    if (sfx_stream) {
+        SDL_DestroyAudioStream(sfx_stream);
+        sfx_stream = NULL;
+    }
+
     if (music_buffer) {
         SDL_free(music_buffer);
         music_buffer = NULL;
@@ -132,10 +148,14 @@ void stop_background_music(void) {
 
 void pause_background_music(void) {
     music_paused = true;
+    if (music_stream)
+        SDL_PauseAudioStreamDevice(music_stream);
 }
 
 void resume_background_music(void) {
     music_paused = false;
+    if (music_stream)
+        SDL_ResumeAudioStreamDevice(music_stream);
 }
 
 bool play_sfx(const char* filename) {
@@ -148,9 +168,9 @@ bool play_sfx(const char* filename) {
         return false;
     }
 
-    if (music_stream) {
-        SDL_PutAudioStreamData(music_stream, sfx_buffer, sfx_length);
-        SDL_ResumeAudioStreamDevice(music_stream);
+    if (sfx_stream) {
+        SDL_PutAudioStreamData(sfx_stream, sfx_buffer, sfx_length);
+        SDL_ResumeAudioStreamDevice(sfx_stream);
     }
 
     SDL_free(sfx_buffer);
