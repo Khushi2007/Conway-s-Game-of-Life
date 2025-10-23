@@ -693,6 +693,7 @@ void game_events(struct Game *g) {
                     case SDL_SCANCODE_N:
                         if (!g->is_playing) {
                             update_grid();
+                            play_sfx("assets/next_gen.wav");
                         }
                         break;
                     case SDL_SCANCODE_H:
