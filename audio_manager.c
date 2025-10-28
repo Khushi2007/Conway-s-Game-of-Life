@@ -19,6 +19,7 @@
  * --------------------------------------------------------------------------------------------
  * These static variables maintain the persistence of audio streams and thread state
  * -------------------------------------------------------------------------------------------- */
+
 static SDL_Thread *music_thread = NULL; // Thread for looping background music
 static bool music_thread_running = false; // Flag to control the music thread loop
 static bool music_paused = false; // Indicates if the music is currently paused
@@ -35,6 +36,7 @@ static const char *current_music_file = NULL; // Path to the currently loaded ba
  * --------------------------------------------------------------------------------------------
  * Continuously checks and reloads the music stream to ensure seamless looping
  * -------------------------------------------------------------------------------------------- */
+
 static int music_loop_thread(void *arg) {
     while (music_thread_running) {
         // If music is not paused and the stream is empty, reload the music
@@ -66,6 +68,7 @@ static int music_loop_thread(void *arg) {
  * @brief Initializes the SDL audio subsystem.
  * @return true if initialization is successful, false otherwise.
  */
+
 bool init_audio_system(void) {
     // Initialize SDL audio subsystem
     if (SDL_Init(SDL_INIT_AUDIO) < 0) {
@@ -78,6 +81,7 @@ bool init_audio_system(void) {
 /**
  * @brief Shuts down the SDL audio subsystem and frees all resources.
  */
+
 void shutdown_audio_system(void) {
     music_thread_running = false; // Stop the music thread
     if (music_thread) {
@@ -115,6 +119,7 @@ void shutdown_audio_system(void) {
  * @param filename Path to the WAV file.
  * @return true if the music starts playing successfully, false otherwise.
  */
+
 bool play_background_music(const char* filename) {
     if (music_stream) {
         // Free existing music stream
@@ -156,6 +161,7 @@ bool play_background_music(const char* filename) {
         SDL_free(buffer);
         return false;
     }
+    
     SDL_ResumeAudioStreamDevice(sfx_stream); // Start SFX playback
 
     // Store music data for looping
@@ -176,6 +182,7 @@ bool play_background_music(const char* filename) {
 /**
  * @brief Stops background music playback and frees associated resources.
  */
+
 void stop_background_music(void) {
     music_thread_running = false; // Signal the music thread to stop
     if (music_thread) {
@@ -207,19 +214,19 @@ void stop_background_music(void) {
 /**
  * @brief Pauses background music playback.
  */
+
 void pause_background_music(void) {
     music_paused = true;
-    if (music_stream)
-        SDL_PauseAudioStreamDevice(music_stream);
+    if (music_stream) SDL_PauseAudioStreamDevice(music_stream);
 }
 
 /**
  * @brief Resumes background music playback.
  */
+
 void resume_background_music(void) {
     music_paused = false;
-    if (music_stream)
-        SDL_ResumeAudioStreamDevice(music_stream);
+    if (music_stream) SDL_ResumeAudioStreamDevice(music_stream);
 }
 
 /* --------------------------------------------------------------------------------------------
@@ -231,6 +238,7 @@ void resume_background_music(void) {
  * @param filename Path to the WAV file.
  * @return true if the sound effect plays successfully, false otherwise.
  */
+
 bool play_sfx(const char* filename) {
     SDL_AudioSpec sfx_spec; // Spec to hold WAV format
     Uint8 *sfx_buffer; // Buffer for SFX data
