@@ -1177,6 +1177,7 @@ void game_run(struct Game *g) {
         }
         // Update window title based on play/pause state
         SDL_SetWindowTitle(g->window, g->is_playing? "Conway's Game of Life | Playing" : "Conway's Game of Life | Paused");
+        
         // Handle events and draw the frame
         game_events(g);
         game_draw(g);
