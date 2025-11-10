@@ -48,6 +48,7 @@ int next_grid[GRID_HEIGHT][GRID_WIDTH] = {0};
  * @brief Represents an RGBA color.
  */
 
+// Parv and Omkumar
 struct Color {
     Uint8 r, g, b, a;
 };
@@ -57,6 +58,7 @@ struct Color {
  * @brief Holds the main runtime state of the game including SDL components and game flags.
  */
 
+// Vanshi and Khushi, Het and Virat
 struct Game {
     SDL_Window *window; // Main application window
     SDL_Renderer *renderer; // Renderer for drawing tiles and UI
@@ -76,6 +78,7 @@ struct Game {
  * It is primarily used in the @ref customize_preloaded_pattern() function.
  */
 
+// Harmit and Yuvraj
 struct PatternOptions {
     int offset_x; // Horizontal offset from left edge of grid where the pattern should be placed
     int offset_y; // Vertical offset from top of grid where the pattern should be placed
@@ -98,6 +101,7 @@ struct PatternOptions {
  * @param num_lines Number of text lines.
  */
 
+// Vanshi and Khushi
 void show_menu_window(char window_title[], int win_x, int win_y, char *lines[], int num_lines) {
     // TTF must be initialized before calling this function
     if (TTF_Init() == -1) {
@@ -158,6 +162,7 @@ void show_menu_window(char window_title[], int win_x, int win_y, char *lines[], 
  * @brief Displays the help window listing available hotkeys.
  */
 
+// Het and Virat
 void show_help_window() {
 
     char *lines[] = {
@@ -184,6 +189,7 @@ void show_help_window() {
  * @brief Displays the preloaded patterns window.
  */
 
+// Harmit and Yuvraj
 void show_patterns_window() {
 
     char *lines[] = {
@@ -208,6 +214,7 @@ void show_patterns_window() {
  * @return true if initialization is successful, false otherwise.
  */
 
+// Vanshi and Khushi
 bool game_init_sdl(struct Game *g) {
     if (SDL_Init(SDL_FLAGS) < 0) {
         fprintf(stderr, "Error initializing SDL3: %s\n", SDL_GetError());
@@ -241,6 +248,7 @@ bool game_init_sdl(struct Game *g) {
  * @return true if game setup is successful, false otherwise.
  */
 
+// Vanshi and Khushi
 bool game_new(struct Game *g) {
     // Initialize SDL subsystems
     if (!game_init_sdl(g)) {
@@ -272,6 +280,7 @@ bool game_new(struct Game *g) {
  * @param g Pointer to the Game instance.
  */
 
+// Vanshi and Khushi
 void game_free(struct Game *g) {
     if (g -> renderer) {
         SDL_DestroyRenderer(g -> renderer);
@@ -294,6 +303,7 @@ void game_free(struct Game *g) {
  * @brief Randomizes the grid with live and dead cells.
  */
 
+// Het and Virat
 void grid_randomize() {
     for (int y = 0; y < GRID_HEIGHT; y++) {
         for (int x = 0; x < GRID_WIDTH; x++) {
@@ -309,6 +319,7 @@ void grid_randomize() {
  * @return Number of live neighbouring cells.
  */
 
+// Prateek and Hunar
 int count_neighbours(int y, int x) {
     int count = 0;
     for (int dy = -1; dy <= 1; dy++) {
@@ -327,6 +338,7 @@ int count_neighbours(int y, int x) {
  * @brief Computes and applies the next generation of the grid based on Conway's rules.
  */
 
+// Prateek and Hunar
 void update_grid() {
     for (int y = 0; y < GRID_HEIGHT; y++) {
         for (int x = 0; x < GRID_WIDTH; x++) {
@@ -351,6 +363,7 @@ void update_grid() {
  * @brief Clears all live cells from the grid.
  */
 
+// Het and Virat
 void clear_screen() {
     for (int y = 0; y < GRID_HEIGHT; y++) {
         for (int x = 0; x < GRID_WIDTH; x++) {
@@ -371,6 +384,7 @@ void clear_screen() {
  * @param clear_before Whether to clear the grid before loading.
  */
 
+// Harmit and Yuvraj
 void load_rle(const char* filename, int offset_y, int offset_x, bool clear_before) {
     FILE *f = fopen(filename, "r");
     // Check if file opened successfully
@@ -476,6 +490,7 @@ void load_rle(const char* filename, int offset_y, int offset_x, bool clear_befor
  * Input handling (dragging and updating `value`) is implemented separately.
  */
 
+// Vanshi and Khushi
 static void draw_slider(SDL_Renderer *ren, int x, int y, int value, SDL_Color barColor) {
     float width = 200.0f; // Fixed width of the slider
     SDL_FRect track = {x, y, width, 10}; // Slider track rectangle
@@ -517,6 +532,7 @@ static void draw_slider(SDL_Renderer *ren, int x, int y, int value, SDL_Color ba
  * the chosen color to the game. The returned color is manually assigned to the tile color later.
  */
 
+// Vanshi and Khushi
 struct Color open_color_slider_picker(struct Game *g) {
     // Create SDL window and renderer for color picker
     SDL_Window *win = SDL_CreateWindow("Color Picker", 600, 300, 0);
@@ -629,6 +645,7 @@ struct Color open_color_slider_picker(struct Game *g) {
  * It uses SDL_ttf for text rendering and must be called after SDL and TTF are initialized.
  */
 
+// Vanshi and Khushi, Parv and Omkumar
 void customize_game(struct Game *g) {
     // Initialize TTF for text rendering
     if (TTF_Init() == -1) {
@@ -776,6 +793,7 @@ void customize_game(struct Game *g) {
  * @note This function destroys the temporary SDL surface and texture after rendering.
  */
 
+// Vanshi and Khushi
 void draw_text(SDL_Renderer *ren, TTF_Font *font, const char *text, int x, int y, SDL_Color color) {
     SDL_Surface *surf = TTF_RenderText_Solid(font, text, strlen(text), color); // Create surface
     SDL_Texture *tex = SDL_CreateTextureFromSurface(ren, surf); // Create texture from surface
@@ -798,6 +816,7 @@ void draw_text(SDL_Renderer *ren, TTF_Font *font, const char *text, int x, int y
  * @param color The SDL_Color specifying the text color.
  */
 
+// Vanshi and Khushi
 void draw_button(SDL_Renderer *ren, TTF_Font *font, SDL_FRect rect, const char *text, SDL_Color color) {
     SDL_SetRenderDrawColor(ren, 0, 200, 0, 255); // Button background color
     SDL_RenderFillRect(ren, &rect); // Draw button rectangle
@@ -828,6 +847,7 @@ void draw_button(SDL_Renderer *ren, TTF_Font *font, SDL_FRect rect, const char *
  * or confirms the action.  
  */
 
+// Vanshi and Khushi, Harmit and Yuvraj
 void customize_preloaded_pattern(const char* filename, char pattern_name[]) {
     // Initialize pattern options with default values
     struct PatternOptions opts = {0, 0, false, false}; 
@@ -988,6 +1008,7 @@ void customize_preloaded_pattern(const char* filename, char pattern_name[]) {
  *       in the same loop. It also synchronizes audio playback with visual actions.
  */
 
+// Het and Virat
 void game_events(struct Game *g) {
     while (SDL_PollEvent(&g->event)) {
         switch (g->event.type) {
@@ -1089,6 +1110,7 @@ void game_events(struct Game *g) {
  * @note This function is purely visual and does not affect the grid state.
  */
 
+// Vanshi and Khushi
 void draw_grid_lines(struct Game *g) {
     SDL_SetRenderDrawColor(g->renderer, 255, 255, 255, 255);
     // Draw vertical lines
@@ -1113,6 +1135,7 @@ void draw_grid_lines(struct Game *g) {
  *       Empty cells reamin black and drawn over by the background.
  */
 
+// Vanshi and Khushi
 void draw_grid(struct Game *g) {
     // Set draw color to the game's tile color
     SDL_SetRenderDrawColor(g->renderer, g->tile_color.r, g->tile_color.g, g->tile_color.b, g->tile_color.a);
@@ -1142,6 +1165,7 @@ void draw_grid(struct Game *g) {
  * @param g Pointer to the game instance.
  */
 
+// Vanshi and Khushi
 void game_draw(struct Game *g) {
     SDL_SetRenderDrawColor(g->renderer, 0, 0, 0, 255); // Black background
     SDL_RenderClear(g->renderer);
@@ -1163,6 +1187,7 @@ void game_draw(struct Game *g) {
  * @note The window title dynamically updates to reflect the current play or pause status.
  */
 
+// Vanshi and Khushi, Prateek and Hunar
 void game_run(struct Game *g) {
     int count = 0; // Frame counter for update frequency
 

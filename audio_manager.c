@@ -1,3 +1,5 @@
+// Parv and Omkumar
+
 /**
  * @file audio_manager.c
  * @brief Handles all audio functionalities including background music and sound effects.
