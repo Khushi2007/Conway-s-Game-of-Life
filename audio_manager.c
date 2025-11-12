@@ -41,12 +41,11 @@ static const char *current_music_file = NULL; // Path to the currently loaded ba
 
 static int music_loop_thread(void *arg) {
     while (music_thread_running) {
-        // If music is not paused and the stream is not empty, reload the music
+        // If music is not paused and the stream is empty, reload the music
         if (!music_paused && music_stream && SDL_GetAudioStreamQueued(music_stream) == 0) {
             SDL_AudioSpec spec; // Spec to hold WAV format
             Uint8 *buffer; // Buffer for reloading WAV data
             Uint32 length; // Length of reloaded data
-
             // Reload the WAV data
             if (!SDL_LoadWAV(current_music_file, &spec, &buffer, &length)) {
                 SDL_Log("Failed to reload WAV: %s\n", SDL_GetError());
