@@ -65,6 +65,7 @@ struct Game {
     SDL_Event event; // Global event handler
     bool is_running; // True if game is active
     bool is_playing; // True if simulation is running (not paused)
+    bool is_music_playing; // True if background music is playing
     int update_freq; // Simulation update delay in milliseconds (speed control)
     struct Color tile_color; // RGBA color for live cellsd
 };
@@ -177,6 +178,7 @@ void show_help_window() {
         "[P] - Show Patterns menu",
         "[H] - Show this help menu",
         "[S] - Customize simulation",
+        "[M] - Toggle music pause/resume",
         "[ESC] - Quit"
     };
     
@@ -267,6 +269,7 @@ bool game_new(struct Game *g) {
     // Set initial game state
     g -> is_running = true;
     g -> is_playing = true;
+    g -> is_music_playing = true;
     g -> update_freq = 60;
     g -> tile_color.r = 255;
     g -> tile_color.g = 255;
@@ -1023,7 +1026,9 @@ void game_events(struct Game *g) {
                     case SDL_SCANCODE_SPACE:
                         g->is_playing = !g->is_playing;
                         if (g->is_playing) {
-                            resume_background_music();
+                            if (g->is_music_playing) {
+                                resume_background_music();
+                            }
                         } else {
                             pause_background_music();
                         }
@@ -1052,6 +1057,14 @@ void game_events(struct Game *g) {
                         break;
                     case SDL_SCANCODE_S:
                         customize_game(g);
+                        break;
+                    case SDL_SCANCODE_M:
+                        if (g->is_music_playing) {
+                            pause_background_music();
+                        } else {
+                            resume_background_music();
+                        }
+                        g->is_music_playing = !g->is_music_playing;
                         break;
                     case SDL_SCANCODE_1:
                         customize_preloaded_pattern("patterns/glider.rle", "Glider");
